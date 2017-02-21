@@ -28,5 +28,5 @@ _testmain.go
 /dbstest/*
 /bkp_dbstest/**/*
 
-/pview/*
-/bkp_pview/**/*
+/pupdate/*
+/bkp_pupdate/**/*

@@ -1,7 +1,6 @@
 package boltcluster_test
 
 import (
-	"encoding/binary"
 	"os"
 	"strings"
 	"sync"
@@ -48,7 +47,7 @@ func TestReadWrite(t *testing.T) {
 	expectedValue := "World"
 
 	subject.Update(distributionKey, func(tx *bolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists([]byte(`testing`))
+		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
 
 		if err != nil {
 			t.Fail()
@@ -60,7 +59,7 @@ func TestReadWrite(t *testing.T) {
 	})
 
 	subject.Update(distributionKey, func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(`testing`))
+		bucket := tx.Bucket(boltcluster.Stob(`testing`))
 		ch <- bucket.Get(boltcluster.Stob("hello"))
 		return nil
 	})
@@ -111,7 +110,7 @@ func TestResizeCluster(t *testing.T) {
 	}
 
 	c.Update(distributionKey, func(tx *bolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists([]byte(`testing`))
+		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
 		if err != nil {
 			t.Fail()
 		}
@@ -161,7 +160,7 @@ func TestResizeCluster(t *testing.T) {
 	ch := make(chan string)
 	c.Update(distributionKey, func(tx *bolt.Tx) error {
 
-		bucket, err := tx.CreateBucketIfNotExists([]byte(`testing`))
+		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
 
 		if err != nil {
 			t.Fail()
@@ -185,8 +184,8 @@ func TestResizeCluster(t *testing.T) {
 
 }
 
-func TestParallelViev(t *testing.T) {
-	newDirectoryPath := "./pview"
+func TestParallelUpdate(t *testing.T) {
+	newDirectoryPath := "./pupdate"
 
 	if _, err := os.Stat(newDirectoryPath); !os.IsNotExist(err) {
 		os.RemoveAll(newDirectoryPath)
@@ -198,7 +197,7 @@ func TestParallelViev(t *testing.T) {
 
 	c.Update(1, func(tx *bolt.Tx) error {
 
-		bucket, err := tx.CreateBucketIfNotExists([]byte(`testing`))
+		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
 		if err != nil {
 			t.Fail()
 		}
@@ -209,7 +208,7 @@ func TestParallelViev(t *testing.T) {
 
 	c.Update(2, func(tx *bolt.Tx) error {
 
-		bucket, err := tx.CreateBucketIfNotExists([]byte(`testing`))
+		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
 		if err != nil {
 			t.Fail()
 		}
@@ -221,14 +220,14 @@ func TestParallelViev(t *testing.T) {
 	ch := make(chan int)
 	c.ParallelUpdate(func(tx *bolt.Tx) error {
 
-		bucket, err := tx.CreateBucketIfNotExists([]byte(`testing`))
+		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
 
 		if err != nil {
 			t.Fail()
 		}
 
 		by := bucket.Get(boltcluster.Stob("hello"))
-		ch <- int(binary.BigEndian.Uint64(by))
+		ch <- boltcluster.Btoi(by)
 		return nil
 	})
 
