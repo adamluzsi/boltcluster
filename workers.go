@@ -43,10 +43,7 @@ func (c *Cluster) startListningToChannels() {
 }
 
 func (c *Cluster) dbWorker(clusterIndex int, db *bolt.DB, in TransactionFunctionChan, wwg *sync.WaitGroup) {
-	defer c.Logger.Printf("dbWorker for %v is Done\n", clusterIndex)
 	defer wwg.Done()
-
-	c.Logger.Printf("dbWorker start to server requests for cluster: %v\n", clusterIndex)
 
 	atShutdown := false
 
