@@ -1,8 +1,10 @@
 package boltcluster_test
 
 import (
+	"encoding/binary"
 	"log"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -182,4 +184,89 @@ func TestResizeCluster(t *testing.T) {
 
 	c.Close()
 
+}
+
+func TestParallelViev(t *testing.T) {
+	newDirectoryPath := "./pview"
+
+	if _, err := os.Stat(newDirectoryPath); !os.IsNotExist(err) {
+		os.RemoveAll(newDirectoryPath)
+	}
+
+	c := boltcluster.New(boltcluster.SetDirectoryPathTo(newDirectoryPath))
+	c.RedistributeTo(2, func(_ *bolt.Tx) error { return nil })
+	defer c.Close()
+
+	c.Update(1, func(tx *bolt.Tx) error {
+
+		bucket, err := tx.CreateBucketIfNotExists([]byte(`testing`))
+		if err != nil {
+			t.Fail()
+		}
+
+		bucket.Put(boltcluster.Stob("hello"), boltcluster.Itob8(1))
+		return nil
+	})
+
+	c.Update(2, func(tx *bolt.Tx) error {
+
+		bucket, err := tx.CreateBucketIfNotExists([]byte(`testing`))
+		if err != nil {
+			t.Fail()
+		}
+
+		bucket.Put(boltcluster.Stob("hello"), boltcluster.Itob8(2))
+		return nil
+	})
+
+	ch := make(chan int)
+	c.ParallelUpdate(func(tx *bolt.Tx) error {
+
+		bucket, err := tx.CreateBucketIfNotExists([]byte(`testing`))
+
+		if err != nil {
+			t.Fail()
+		}
+
+		by := bucket.Get(boltcluster.Stob("hello"))
+		ch <- int(binary.BigEndian.Uint64(by))
+		return nil
+	})
+
+	ints := []int{}
+	for index := 0; index < 2; index++ {
+		ints = append(ints, <-ch)
+	}
+
+	if !testEq(ints, []int{1, 2}) {
+		t.Log("Failed to assert the expected result set is equal")
+		t.Fail()
+	}
+
+}
+
+func testEq(a, b []int) bool {
+
+	if a == nil && b == nil {
+		return true
+	}
+
+	if a == nil || b == nil {
+		return false
+	}
+
+	if len(a) != len(b) {
+		return false
+	}
+
+	sort.Ints(a)
+	sort.Ints(b)
+
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+
+	return true
 }

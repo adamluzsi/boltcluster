@@ -24,5 +24,9 @@ _testmain.go
 *.prof
 
 /dbs/*
+
 /dbstest/*
 /bkp_dbstest/**/*
+
+/pview/*
+/bkp_pview/**/*
