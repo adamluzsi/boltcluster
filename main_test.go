@@ -5,6 +5,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	. "github.com/adamluzsi/boltcluster/testing"
 
@@ -127,9 +128,9 @@ func TestResizeCluster(t *testing.T) {
 				if value != nil {
 
 					somethingThatBeingUsedAsDistributionKey := distributionKey
-					bName := append([]byte{}, k...)
-					kName := append([]byte{}, key...)
-					vName := append([]byte{}, value...)
+					bName := boltcluster.Copy(k)
+					kName := boltcluster.Copy(key)
+					vName := boltcluster.Copy(value)
 
 					c.Update(somethingThatBeingUsedAsDistributionKey, func(t *bolt.Tx) error {
 
@@ -238,6 +239,91 @@ func TestParallelUpdate(t *testing.T) {
 
 	if !TestEqInts(ints, []int{1, 2}) {
 		t.Log("Failed to assert the expected result set is equal")
+		t.Fail()
+	}
+
+}
+
+func TestParallelView(t *testing.T) {
+	newDirectoryPath := "./pview"
+
+	if _, err := os.Stat(newDirectoryPath); !os.IsNotExist(err) {
+		os.RemoveAll(newDirectoryPath)
+	}
+
+	c := boltcluster.New(boltcluster.SetDirectoryPathTo(newDirectoryPath))
+	c.RedistributeTo(2, func(_ *bolt.Tx) error { return nil })
+	defer c.Close()
+
+	c.Update(1, func(tx *bolt.Tx) error {
+
+		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
+		if err != nil {
+			t.Fail()
+		}
+
+		bucket.Put(boltcluster.Stob("hello"), boltcluster.Itob8(1))
+		return nil
+	})
+
+	c.Update(2, func(tx *bolt.Tx) error {
+
+		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
+		if err != nil {
+			t.Fail()
+		}
+
+		bucket.Put(boltcluster.Stob("hello"), boltcluster.Itob8(2))
+		return nil
+
+	})
+
+	ch := make(chan int)
+	var m sync.Mutex
+	set := make(map[int]struct{})
+
+	go func() {
+		for i := range ch {
+			m.Lock()
+			set[i] = struct{}{}
+			m.Unlock()
+		}
+	}()
+
+	for index := 0; index < 1000; index++ {
+
+		sw := c.ParallelView(func(tx *bolt.Tx) error {
+
+			bucket := tx.Bucket(boltcluster.Stob(`testing`))
+
+			if bucket != nil {
+				by := bucket.Get(boltcluster.Stob("hello"))
+				ch <- boltcluster.Btoi(by)
+			}
+
+			return nil
+
+		})
+
+		sw.Wait()
+
+		m.Lock()
+		setLength := len(set)
+		m.Unlock()
+
+		if setLength == 2 {
+			break
+		} else {
+			time.Sleep(500 * time.Millisecond)
+		}
+
+	}
+
+	close(ch)
+
+	if len(set) != 2 {
+		t.Log("Failed to assert the expected result set is equal")
+		t.Log(set)
 		t.Fail()
 	}
 

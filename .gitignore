@@ -30,3 +30,6 @@ _testmain.go
 
 /pupdate/*
 /bkp_pupdate/**/*
+
+/pview/*
+/bkp_pview/**/*

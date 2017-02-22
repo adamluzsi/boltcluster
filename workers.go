@@ -2,6 +2,7 @@ package boltcluster
 
 import (
 	"sync"
+	"time"
 
 	"github.com/boltdb/bolt"
 )
@@ -29,21 +30,26 @@ func (c *Cluster) dbWorker(clusterIndex int, db *bolt.DB, in TransactionFunction
 	for {
 
 		err := db.Batch(func(tx *bolt.Tx) error {
-
+		transactionLoop:
 			for i := 0; i < transactionLimitSize; i++ {
+				select {
 
-				fn, ok := <-in
+				case fn, ok := <-in:
 
-				if !ok {
-					atShutdown = true
-					break
+					if !ok {
+						atShutdown = true
+						break transactionLoop
+					}
+
+					err := fn(tx)
+					if err != nil {
+						return err
+					}
+
+				case <-time.After(1 * time.Second):
+					break transactionLoop
+
 				}
-
-				err := fn(tx)
-				if err != nil {
-					return err
-				}
-
 			}
 
 			return nil
