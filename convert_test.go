@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/adamluzsi/boltcluster"
+	. "github.com/adamluzsi/boltcluster/testing"
 )
 
 func TestItob8(t *testing.T) {
@@ -113,6 +114,16 @@ func TestBtoui64(t *testing.T) {
 	if intValue != uint64(5) {
 		t.Log("transformation failed")
 		t.Log(intValue)
+		t.Fail()
+	}
+}
+
+func TestCopy(t *testing.T) {
+	slice := boltcluster.Copy([]byte{0, 0, 0, 0, 0, 0, 0, 5})
+
+	if !TestEqBytes(slice, []byte{0, 0, 0, 0, 0, 0, 0, 5}) {
+		t.Log("transformation failed")
+		t.Log(slice)
 		t.Fail()
 	}
 }
