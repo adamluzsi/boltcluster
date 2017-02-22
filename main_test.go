@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/adamluzsi/boltcluster/testing"
+	// . "github.com/adamluzsi/boltcluster/testing"
 
 	"github.com/adamluzsi/boltcluster"
 	"github.com/boltdb/bolt"
@@ -41,40 +41,6 @@ func setUp(t *testing.T) {
 	})
 }
 
-func TestReadWrite(t *testing.T) {
-	setUp(t)
-
-	ch := make(chan []byte)
-	expectedValue := "World"
-
-	subject.Update(distributionKey, func(tx *bolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
-
-		if err != nil {
-			t.Fail()
-		}
-
-		bucket.Put(boltcluster.Stob("hello"), boltcluster.Stob(expectedValue))
-
-		return nil
-	})
-
-	subject.Update(distributionKey, func(tx *bolt.Tx) error {
-		bucket := tx.Bucket(boltcluster.Stob(`testing`))
-		ch <- bucket.Get(boltcluster.Stob("hello"))
-		return nil
-	})
-
-	result := <-ch
-	resultstr := string(result)
-
-	if resultstr != expectedValue {
-		t.Logf("expected %v got %v", expectedValue, resultstr)
-		t.Fail()
-	}
-
-}
-
 func TestOptions(t *testing.T) {
 
 	newDirectoryPath := "./dbstest"
@@ -92,6 +58,94 @@ func TestOptions(t *testing.T) {
 
 }
 
+func TestUpdate(t *testing.T) {
+	setUp(t)
+
+	expectedValue := "World"
+
+	err := subject.Update(distributionKey, func(tx *bolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
+
+		if err != nil {
+			t.Fail()
+		}
+
+		bucket.Put(boltcluster.Stob("hello"), boltcluster.Stob(expectedValue))
+
+		return nil
+	})
+
+	if err != nil {
+		t.Log(err)
+		t.Fail()
+	}
+
+	var result []byte
+
+	err = subject.Update(distributionKey, func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(boltcluster.Stob(`testing`))
+		result = boltcluster.Copy(bucket.Get(boltcluster.Stob("hello")))
+		return nil
+	})
+
+	if err != nil {
+		t.Log(err)
+		t.Fail()
+	}
+
+	resultstr := string(result)
+
+	if resultstr != expectedValue {
+		t.Logf("expected %v got %v", expectedValue, resultstr)
+		t.Fail()
+	}
+
+}
+
+func TestBatch(t *testing.T) {
+	setUp(t)
+
+	expectedValue := "World"
+
+	err := subject.Batch(distributionKey, func(tx *bolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
+
+		if err != nil {
+			t.Fail()
+		}
+
+		bucket.Put(boltcluster.Stob("hello"), boltcluster.Stob(expectedValue))
+
+		return nil
+	})
+
+	if err != nil {
+		t.Log(err)
+		t.Fail()
+	}
+
+	var result []byte
+
+	err = subject.Batch(distributionKey, func(tx *bolt.Tx) error {
+		bucket := tx.Bucket(boltcluster.Stob(`testing`))
+		result = boltcluster.Copy(bucket.Get(boltcluster.Stob("hello")))
+		return nil
+	})
+
+	if err != nil {
+		t.Log(err)
+		t.Fail()
+	}
+
+	resultstr := string(result)
+
+	if resultstr != expectedValue {
+		t.Logf("expected %v got %v", expectedValue, resultstr)
+		t.Fail()
+	}
+
+}
+
 func TestResizeCluster(t *testing.T) {
 	newDirectoryPath := "./dbstest"
 
@@ -101,6 +155,7 @@ func TestResizeCluster(t *testing.T) {
 
 	c := boltcluster.New(boltcluster.SetDirectoryPathTo(newDirectoryPath))
 	err := c.Open()
+
 	if err != nil {
 		t.Log(err)
 		t.Fail()
@@ -132,7 +187,7 @@ func TestResizeCluster(t *testing.T) {
 					kName := boltcluster.Copy(key)
 					vName := boltcluster.Copy(value)
 
-					c.Update(somethingThatBeingUsedAsDistributionKey, func(t *bolt.Tx) error {
+					c.Batch(somethingThatBeingUsedAsDistributionKey, func(t *bolt.Tx) error {
 
 						bucket, err := t.CreateBucketIfNotExists(bName)
 
@@ -158,7 +213,7 @@ func TestResizeCluster(t *testing.T) {
 		return nil
 	})
 
-	ch := make(chan string)
+	var value string
 	c.Update(distributionKey, func(tx *bolt.Tx) error {
 
 		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
@@ -167,16 +222,11 @@ func TestResizeCluster(t *testing.T) {
 			t.Fail()
 		}
 
-		value := bucket.Get(boltcluster.Stob("hello"))
-
-		ch <- string(value)
-
+		value = string(bucket.Get(boltcluster.Stob("hello")))
 		return nil
 	})
 
-	v := <-ch
-
-	if v != "world" {
+	if value != "world" {
 		t.Log("Distribution failed")
 		t.Fail()
 	}
@@ -187,65 +237,6 @@ func TestResizeCluster(t *testing.T) {
 
 func TestParallelUpdate(t *testing.T) {
 	newDirectoryPath := "./pupdate"
-
-	if _, err := os.Stat(newDirectoryPath); !os.IsNotExist(err) {
-		os.RemoveAll(newDirectoryPath)
-	}
-
-	c := boltcluster.New(boltcluster.SetDirectoryPathTo(newDirectoryPath))
-	c.RedistributeTo(2, func(_ *bolt.Tx) error { return nil })
-	defer c.Close()
-
-	c.Update(1, func(tx *bolt.Tx) error {
-
-		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
-		if err != nil {
-			t.Fail()
-		}
-
-		bucket.Put(boltcluster.Stob("hello"), boltcluster.Itob8(1))
-		return nil
-	})
-
-	c.Update(2, func(tx *bolt.Tx) error {
-
-		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
-		if err != nil {
-			t.Fail()
-		}
-
-		bucket.Put(boltcluster.Stob("hello"), boltcluster.Itob8(2))
-		return nil
-	})
-
-	ch := make(chan int)
-	c.ParallelUpdate(func(tx *bolt.Tx) error {
-
-		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
-
-		if err != nil {
-			t.Fail()
-		}
-
-		by := bucket.Get(boltcluster.Stob("hello"))
-		ch <- boltcluster.Btoi(by)
-		return nil
-	})
-
-	ints := []int{}
-	for index := 0; index < 2; index++ {
-		ints = append(ints, <-ch)
-	}
-
-	if !TestEqInts(ints, []int{1, 2}) {
-		t.Log("Failed to assert the expected result set is equal")
-		t.Fail()
-	}
-
-}
-
-func TestParallelView(t *testing.T) {
-	newDirectoryPath := "./pview"
 
 	if _, err := os.Stat(newDirectoryPath); !os.IsNotExist(err) {
 		os.RemoveAll(newDirectoryPath)
@@ -290,22 +281,33 @@ func TestParallelView(t *testing.T) {
 		}
 	}()
 
+	var wg sync.WaitGroup
 	for index := 0; index < 1000; index++ {
+		wg.Add(1)
 
-		sw := c.ParallelView(func(tx *bolt.Tx) error {
+		go func() {
+			defer wg.Done()
 
-			bucket := tx.Bucket(boltcluster.Stob(`testing`))
+			errs := c.ParallelUpdate(func(tx *bolt.Tx) error {
 
-			if bucket != nil {
-				by := bucket.Get(boltcluster.Stob("hello"))
-				ch <- boltcluster.Btoi(by)
+				bucket := tx.Bucket(boltcluster.Stob(`testing`))
+
+				if bucket != nil {
+					by := bucket.Get(boltcluster.Stob("hello"))
+					ch <- boltcluster.Btoi(by)
+				}
+
+				return nil
+
+			})
+
+			if len(errs) != 0 {
+				panic(errs[0])
 			}
 
-			return nil
+		}()
 
-		})
-
-		sw.Wait()
+		wg.Wait()
 
 		m.Lock()
 		setLength := len(set)
@@ -323,6 +325,205 @@ func TestParallelView(t *testing.T) {
 
 	if len(set) != 2 {
 		t.Log("Failed to assert the expected result set is equal")
+		t.Log(set)
+		t.Fail()
+	}
+
+}
+
+func TestParallelBatch(t *testing.T) {
+	newDirectoryPath := "./pbatch"
+
+	if _, err := os.Stat(newDirectoryPath); !os.IsNotExist(err) {
+		os.RemoveAll(newDirectoryPath)
+	}
+
+	c := boltcluster.New(boltcluster.SetDirectoryPathTo(newDirectoryPath))
+	c.RedistributeTo(2, func(_ *bolt.Tx) error { return nil })
+	defer c.Close()
+
+	c.Update(1, func(tx *bolt.Tx) error {
+
+		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
+		if err != nil {
+			t.Fail()
+		}
+
+		bucket.Put(boltcluster.Stob("hello"), boltcluster.Itob8(1))
+		return nil
+	})
+
+	c.Update(2, func(tx *bolt.Tx) error {
+
+		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
+		if err != nil {
+			t.Fail()
+		}
+
+		bucket.Put(boltcluster.Stob("hello"), boltcluster.Itob8(2))
+		return nil
+
+	})
+
+	ch := make(chan int)
+	var m sync.Mutex
+	set := make(map[int]struct{})
+
+	go func() {
+		for i := range ch {
+			m.Lock()
+			set[i] = struct{}{}
+			m.Unlock()
+		}
+	}()
+
+	var wg sync.WaitGroup
+	for index := 0; index < 1000; index++ {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			errs := c.ParallelBatch(func(tx *bolt.Tx) error {
+
+				bucket := tx.Bucket(boltcluster.Stob(`testing`))
+
+				if bucket != nil {
+					by := bucket.Get(boltcluster.Stob("hello"))
+					ch <- boltcluster.Btoi(by)
+				}
+
+				return nil
+
+			})
+
+			if len(errs) != 0 {
+				panic(errs[0])
+			}
+
+		}()
+
+		wg.Wait()
+
+		m.Lock()
+		setLength := len(set)
+		m.Unlock()
+
+		if setLength == 2 {
+			break
+		} else {
+			time.Sleep(500 * time.Millisecond)
+		}
+
+	}
+
+	close(ch)
+
+	if len(set) != 2 {
+		t.Log("Failed to assert the expected result set is equal")
+		t.Log(set)
+		t.Fail()
+	}
+
+}
+
+func TestView(t *testing.T) {
+	newDirectoryPath := "./pview"
+
+	if _, err := os.Stat(newDirectoryPath); !os.IsNotExist(err) {
+		os.RemoveAll(newDirectoryPath)
+	}
+
+	c := boltcluster.New(boltcluster.SetDirectoryPathTo(newDirectoryPath))
+	c.RedistributeTo(2, func(_ *bolt.Tx) error { return nil })
+	defer c.Close()
+
+	c.Update(1, func(tx *bolt.Tx) error {
+
+		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
+		if err != nil {
+			t.Fail()
+		}
+
+		bucket.Put(boltcluster.Stob("hello"), boltcluster.Itob8(42))
+		return nil
+	})
+
+	c.Update(2, func(tx *bolt.Tx) error {
+
+		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
+		if err != nil {
+			t.Fail()
+		}
+
+		bucket.Put(boltcluster.Stob("hello"), boltcluster.Itob8(32))
+		return nil
+
+	})
+
+	ch := make(chan int)
+	var m sync.Mutex
+	set := make(map[int]struct{})
+
+	go func() {
+		for i := range ch {
+			m.Lock()
+			set[i] = struct{}{}
+			m.Unlock()
+		}
+	}()
+
+	var wg sync.WaitGroup
+	for index := 0; index < 1000; index++ {
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+
+			err := c.View(1, func(tx *bolt.Tx) error {
+
+				bucket := tx.Bucket(boltcluster.Stob(`testing`))
+
+				if bucket != nil {
+					by := bucket.Get(boltcluster.Stob("hello"))
+					ch <- boltcluster.Btoi(by)
+				}
+
+				return nil
+
+			})
+
+			if err != nil {
+				t.Log(err)
+				t.Fail()
+			}
+
+		}()
+
+		wg.Wait()
+
+		m.Lock()
+		setLength := len(set)
+		m.Unlock()
+
+		if setLength == 1 {
+			break
+		} else {
+			time.Sleep(500 * time.Millisecond)
+		}
+
+	}
+
+	close(ch)
+
+	if len(set) != 1 {
+		t.Log("Failed to assert the expected result set is equal")
+		t.Log(set)
+		t.Fail()
+	}
+
+	if _, ok := set[42]; !ok {
+		t.Log("Value not matching")
 		t.Log(set)
 		t.Fail()
 	}

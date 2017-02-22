@@ -31,5 +31,8 @@ _testmain.go
 /pupdate/*
 /bkp_pupdate/**/*
 
+/pbatch/*
+/bkp_pbatch/**/*
+
 /pview/*
 /bkp_pview/**/*

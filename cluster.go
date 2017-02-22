@@ -2,7 +2,6 @@ package boltcluster
 
 import (
 	"io/ioutil"
-	"sync"
 
 	"github.com/boltdb/bolt"
 )
@@ -11,9 +10,7 @@ import (
 type Cluster struct {
 	size          int
 	dbs           map[int]*bolt.DB
-	channels      map[int]TransactionFunctionChan
 	state         bool
-	wg            *sync.WaitGroup
 	Logger        *Logger
 	directoryPath string
 }
@@ -39,13 +36,8 @@ func New(options ...Options) *Cluster {
 }
 
 func (c *Cluster) reset() {
-
-	var wg sync.WaitGroup
-	c.wg = &wg
-
 	c.dbs = make(map[int]*bolt.DB)
-	c.channels = make(map[int]TransactionFunctionChan)
-
+	c.state = false
 }
 
 // Open connect the cluster to the distributed databases
@@ -63,14 +55,9 @@ func (c *Cluster) Open() error {
 		return err
 	}
 
-	err = c.populateChannels()
-
 	if err != nil {
 		return err
 	}
-
-	c.wg.Add(1)
-	go c.startListningToChannels()
 
 	return nil
 }
@@ -79,14 +66,6 @@ func (c *Cluster) Open() error {
 func (c *Cluster) Close() error {
 
 	c.Logger.Println("Close database connections")
-
-	for _, ch := range c.channels {
-		close(ch)
-	}
-
-	c.Logger.Println("Wait for workers to shutdown gracefully")
-	c.wg.Wait()
-
 	for _, db := range c.dbs {
 		err := db.Close()
 		if err != nil {
@@ -94,7 +73,6 @@ func (c *Cluster) Close() error {
 		}
 	}
 
-	c.state = false
 	c.Logger.Println("All database closed")
 
 	c.reset()
