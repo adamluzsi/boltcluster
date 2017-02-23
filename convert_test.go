@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/adamluzsi/boltcluster"
-	. "github.com/adamluzsi/boltcluster/testing"
+	"github.com/LxDB/boltcluster"
+	. "github.com/LxDB/boltcluster/testing"
 )
 
 func TestItob8(t *testing.T) {
