@@ -7,8 +7,6 @@ import (
 	"testing"
 	"time"
 
-	// . "github.com/LxDB/boltcluster/testing"
-
 	"github.com/LxDB/boltcluster"
 	"github.com/boltdb/bolt"
 )
