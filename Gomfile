@@ -1,1 +1,2 @@
 gom 'github.com/LxDB/bolt'
+gom 'github.com/LxDB/testing'

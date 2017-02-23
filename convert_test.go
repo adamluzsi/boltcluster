@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/LxDB/boltcluster"
-	. "github.com/LxDB/boltcluster/testing"
+	. "github.com/LxDB/testing"
 )
 
 func TestItob8(t *testing.T) {
