@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/LxDB/boltcluster"
+	"github.com/LxDB/convert"
 	"github.com/boltdb/bolt"
 )
 
@@ -62,13 +63,13 @@ func TestUpdate(t *testing.T) {
 	expectedValue := "World"
 
 	err := subject.Update(distributionKey, func(tx *bolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
+		bucket, err := tx.CreateBucketIfNotExists(convert.Stob(`testing`))
 
 		if err != nil {
 			t.Fail()
 		}
 
-		bucket.Put(boltcluster.Stob("hello"), boltcluster.Stob(expectedValue))
+		bucket.Put(convert.Stob("hello"), convert.Stob(expectedValue))
 
 		return nil
 	})
@@ -81,8 +82,8 @@ func TestUpdate(t *testing.T) {
 	var result []byte
 
 	err = subject.Update(distributionKey, func(tx *bolt.Tx) error {
-		bucket := tx.Bucket(boltcluster.Stob(`testing`))
-		result = boltcluster.Copy(bucket.Get(boltcluster.Stob("hello")))
+		bucket := tx.Bucket(convert.Stob(`testing`))
+		result = convert.Copy(bucket.Get(convert.Stob("hello")))
 		return nil
 	})
 
@@ -106,13 +107,13 @@ func TestBatch(t *testing.T) {
 	expectedValue := "World"
 
 	err := subject.Batch(distributionKey, func(tx *bolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
+		bucket, err := tx.CreateBucketIfNotExists(convert.Stob(`testing`))
 
 		if err != nil {
 			t.Fail()
 		}
 
-		bucket.Put(boltcluster.Stob("hello"), boltcluster.Stob(expectedValue))
+		bucket.Put(convert.Stob("hello"), convert.Stob(expectedValue))
 
 		return nil
 	})
@@ -125,8 +126,8 @@ func TestBatch(t *testing.T) {
 	var result []byte
 
 	err = subject.Batch(distributionKey, func(tx *bolt.Tx) error {
-		bucket := tx.Bucket(boltcluster.Stob(`testing`))
-		result = boltcluster.Copy(bucket.Get(boltcluster.Stob("hello")))
+		bucket := tx.Bucket(convert.Stob(`testing`))
+		result = convert.Copy(bucket.Get(convert.Stob("hello")))
 		return nil
 	})
 
@@ -164,11 +165,11 @@ func TestResizeCluster(t *testing.T) {
 	}
 
 	c.Update(distributionKey, func(tx *bolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
+		bucket, err := tx.CreateBucketIfNotExists(convert.Stob(`testing`))
 		if err != nil {
 			t.Fail()
 		}
-		bucket.Put(boltcluster.Stob("hello"), boltcluster.Stob("world"))
+		bucket.Put(convert.Stob("hello"), convert.Stob("world"))
 
 		return nil
 	})
@@ -181,9 +182,9 @@ func TestResizeCluster(t *testing.T) {
 				if value != nil {
 
 					somethingThatBeingUsedAsDistributionKey := distributionKey
-					bName := boltcluster.Copy(k)
-					kName := boltcluster.Copy(key)
-					vName := boltcluster.Copy(value)
+					bName := convert.Copy(k)
+					kName := convert.Copy(key)
+					vName := convert.Copy(value)
 
 					c.Batch(somethingThatBeingUsedAsDistributionKey, func(t *bolt.Tx) error {
 
@@ -214,13 +215,13 @@ func TestResizeCluster(t *testing.T) {
 	var value string
 	c.Update(distributionKey, func(tx *bolt.Tx) error {
 
-		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
+		bucket, err := tx.CreateBucketIfNotExists(convert.Stob(`testing`))
 
 		if err != nil {
 			t.Fail()
 		}
 
-		value = string(bucket.Get(boltcluster.Stob("hello")))
+		value = string(bucket.Get(convert.Stob("hello")))
 		return nil
 	})
 
@@ -246,23 +247,23 @@ func TestParallelUpdate(t *testing.T) {
 
 	c.Update(1, func(tx *bolt.Tx) error {
 
-		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
+		bucket, err := tx.CreateBucketIfNotExists(convert.Stob(`testing`))
 		if err != nil {
 			t.Fail()
 		}
 
-		bucket.Put(boltcluster.Stob("hello"), boltcluster.Itob8(1))
+		bucket.Put(convert.Stob("hello"), convert.Itob8(1))
 		return nil
 	})
 
 	c.Update(2, func(tx *bolt.Tx) error {
 
-		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
+		bucket, err := tx.CreateBucketIfNotExists(convert.Stob(`testing`))
 		if err != nil {
 			t.Fail()
 		}
 
-		bucket.Put(boltcluster.Stob("hello"), boltcluster.Itob8(2))
+		bucket.Put(convert.Stob("hello"), convert.Itob8(2))
 		return nil
 
 	})
@@ -288,11 +289,11 @@ func TestParallelUpdate(t *testing.T) {
 
 			errs := c.ParallelUpdate(func(tx *bolt.Tx) error {
 
-				bucket := tx.Bucket(boltcluster.Stob(`testing`))
+				bucket := tx.Bucket(convert.Stob(`testing`))
 
 				if bucket != nil {
-					by := bucket.Get(boltcluster.Stob("hello"))
-					ch <- boltcluster.Btoi(by)
+					by := bucket.Get(convert.Stob("hello"))
+					ch <- convert.Btoi(by)
 				}
 
 				return nil
@@ -342,23 +343,23 @@ func TestParallelBatch(t *testing.T) {
 
 	c.Update(1, func(tx *bolt.Tx) error {
 
-		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
+		bucket, err := tx.CreateBucketIfNotExists(convert.Stob(`testing`))
 		if err != nil {
 			t.Fail()
 		}
 
-		bucket.Put(boltcluster.Stob("hello"), boltcluster.Itob8(1))
+		bucket.Put(convert.Stob("hello"), convert.Itob8(1))
 		return nil
 	})
 
 	c.Update(2, func(tx *bolt.Tx) error {
 
-		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
+		bucket, err := tx.CreateBucketIfNotExists(convert.Stob(`testing`))
 		if err != nil {
 			t.Fail()
 		}
 
-		bucket.Put(boltcluster.Stob("hello"), boltcluster.Itob8(2))
+		bucket.Put(convert.Stob("hello"), convert.Itob8(2))
 		return nil
 
 	})
@@ -384,11 +385,11 @@ func TestParallelBatch(t *testing.T) {
 
 			errs := c.ParallelBatch(func(tx *bolt.Tx) error {
 
-				bucket := tx.Bucket(boltcluster.Stob(`testing`))
+				bucket := tx.Bucket(convert.Stob(`testing`))
 
 				if bucket != nil {
-					by := bucket.Get(boltcluster.Stob("hello"))
-					ch <- boltcluster.Btoi(by)
+					by := bucket.Get(convert.Stob("hello"))
+					ch <- convert.Btoi(by)
 				}
 
 				return nil
@@ -438,23 +439,23 @@ func TestView(t *testing.T) {
 
 	c.Update(1, func(tx *bolt.Tx) error {
 
-		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
+		bucket, err := tx.CreateBucketIfNotExists(convert.Stob(`testing`))
 		if err != nil {
 			t.Fail()
 		}
 
-		bucket.Put(boltcluster.Stob("hello"), boltcluster.Itob8(42))
+		bucket.Put(convert.Stob("hello"), convert.Itob8(42))
 		return nil
 	})
 
 	c.Update(2, func(tx *bolt.Tx) error {
 
-		bucket, err := tx.CreateBucketIfNotExists(boltcluster.Stob(`testing`))
+		bucket, err := tx.CreateBucketIfNotExists(convert.Stob(`testing`))
 		if err != nil {
 			t.Fail()
 		}
 
-		bucket.Put(boltcluster.Stob("hello"), boltcluster.Itob8(32))
+		bucket.Put(convert.Stob("hello"), convert.Itob8(32))
 		return nil
 
 	})
@@ -480,11 +481,11 @@ func TestView(t *testing.T) {
 
 			err := c.View(1, func(tx *bolt.Tx) error {
 
-				bucket := tx.Bucket(boltcluster.Stob(`testing`))
+				bucket := tx.Bucket(convert.Stob(`testing`))
 
 				if bucket != nil {
-					by := bucket.Get(boltcluster.Stob("hello"))
-					ch <- boltcluster.Btoi(by)
+					by := bucket.Get(convert.Stob("hello"))
+					ch <- convert.Btoi(by)
 				}
 
 				return nil
