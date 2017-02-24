@@ -3,7 +3,7 @@ package boltcluster
 import (
 	"strconv"
 
-	"github.com/boltdb/bolt"
+	"github.com/LxDB/bolt"
 )
 
 func (c *Cluster) connectToDatabases() error {

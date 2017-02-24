@@ -1,6 +1,6 @@
 package boltcluster
 
-import "github.com/boltdb/bolt"
+import "github.com/LxDB/bolt"
 
 // BoltDBTxFunction bolt db transaction function
 type BoltDBTxFunction func(*bolt.Tx) error

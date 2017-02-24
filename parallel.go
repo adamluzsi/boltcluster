@@ -3,7 +3,7 @@ package boltcluster
 import (
 	"sync"
 
-	"github.com/boltdb/bolt"
+	"github.com/LxDB/bolt"
 )
 
 // -----------------------------------Parallel-----------------------------------

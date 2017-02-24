@@ -3,7 +3,7 @@ package boltcluster
 import (
 	"io/ioutil"
 
-	"github.com/boltdb/bolt"
+	"github.com/LxDB/bolt"
 )
 
 // Cluster object that handles storing new uniq values
