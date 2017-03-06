@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/LxDB/bolt"
+	"github.com/boltdb/bolt"
 )
 
 // RedistributeTo help you to change the db distribution size on the disc

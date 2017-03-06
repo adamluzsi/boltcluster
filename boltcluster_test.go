@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LxDB/bolt"
+	"github.com/boltdb/bolt"
 	"github.com/LxDB/boltcluster"
 	"github.com/LxDB/convert"
 )
