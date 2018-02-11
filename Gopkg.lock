@@ -3,13 +3,7 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/LxDB/boltcluster"
-  packages = ["."]
-  revision = "ec4e7b8b5940bd89472a134ce91127579a9f300d"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/LxDB/convert"
+  name = "github.com/adamluzsi/convert"
   packages = ["."]
   revision = "fd291c455261618f33dccd4059786c25651d3eaf"
 
@@ -28,6 +22,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b25b0fc324e8e2491ac35fef9561ac2e5ddf2eac9929b805200f159eef075811"
+  inputs-digest = "629855e95fabf94cd0c390547e3037903a8821ebb8e265ec794bcd3627e32538"
   solver-name = "gps-cdcl"
   solver-version = 1
