@@ -32,8 +32,7 @@ func setUp(t *testing.T) {
 			subject.Logger.Verbosity = true
 		}
 
-		err := subject.Open()
-		if err != nil {
+		if err := subject.Open(); err != nil {
 			t.Log(err)
 			t.Fail()
 		}
