@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/adamluzsi/boltcluster"
+	"github.com/adamluzsi/convert"
 	"github.com/boltdb/bolt"
-	"github.com/LxDB/boltcluster"
-	"github.com/LxDB/convert"
 )
 
 var once sync.Once
